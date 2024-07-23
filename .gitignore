@@ -1,2 +1,7 @@
-.venv
-.idea
+# Directories to ignore
+.venv/
+.idea/
+data/
+
+# Files to ignore
+*.pyc
