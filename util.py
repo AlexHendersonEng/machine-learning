@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 import os
 import requests
@@ -26,9 +27,9 @@ class CustomMNIST(Dataset):
 
         # Get training/testing data
         if self.train:
-            self.data, self.targets = self._load_data(train=True)
+            self._load_data(train=True)
         else:
-            self.data, self.targets = self._load_data(train=False)
+            self._load_data(train=False)
 
     def _download_data(self):
         # Make directory if required
@@ -71,7 +72,7 @@ class CustomMNIST(Dataset):
         with open(labels, 'rb') as label_data:
             targets = np.frombuffer(label_data.read(), dtype=np.uint8, offset=8)
 
-        return images, targets
+        self.data, self.targets = np.copy(images), np.copy(targets)
 
     def __len__(self):
         return len(self.data)
