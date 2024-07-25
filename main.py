@@ -1,3 +1,5 @@
+import numpy as np
+
 from util import CustomMNIST
 import torchvision.transforms as transforms
 import torch
@@ -42,14 +44,19 @@ class DigitClassifier(nn.Module):
 
 # Instantiate model, loss function and optimiser
 model = DigitClassifier()
-loss_fn = nn.CrossEntropyLoss()
-optim = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.9)
+loss_fn = nn.MSELoss()
+optim = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 # Training loop
-for epoch in range(3):
+for epoch in range(1):
     for batch_idx, data in enumerate(train_dataloader):
         # Get images and labels
         images, labels = data
+
+        # One hot encoding
+        one_hot = torch.zeros(labels.size(0), 10)
+        for row in range(one_hot.size(0)):
+            one_hot[row, labels[row].item()] = 1
 
         # Zero gradients for every batch
         optim.zero_grad()
@@ -58,7 +65,7 @@ for epoch in range(3):
         preds = model(images)
 
         # Compute loss and gradients
-        loss = loss_fn(preds, labels)
+        loss = loss_fn(preds, one_hot)
         loss.backward()
 
         # Adjust model parameters
@@ -70,9 +77,10 @@ for epoch in range(3):
 # Test model
 model.eval()
 test_image, test_label = test_dataset[0]
-pred = model(test_image)
-print(pred)
+preds = model(test_image)
+pred = torch.argmax(preds)
 plt.imshow(test_image[0])
+plt.title(f'Prediction {pred.item()}')
 plt.show()
 
 
