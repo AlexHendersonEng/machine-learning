@@ -1,5 +1,3 @@
-import numpy as np
-
 from util import CustomMNIST
 import torchvision.transforms as transforms
 import torch
@@ -74,14 +72,45 @@ for epoch in range(1):
         # Print loss to command line
         print(f'Epoch: {epoch + 1}, Batch: {batch_idx}, Loss: {loss.item()}')
 
-# Test model
+# Testing loop
 model.eval()
-test_image, test_label = test_dataset[0]
-preds = model(test_image)
-pred = torch.argmax(preds)
-plt.imshow(test_image[0])
-plt.title(f'Prediction {pred.item()}')
+with torch.no_grad():
+    num_correct = 0
+    for data in test_dataloader:
+        # Get images and labels
+        images, labels = data
+
+        # Make predictions
+        preds = model(images)
+
+        # Get number of correct predictions
+        num_correct += torch.sum(torch.argmax(preds, dim=1) == labels).item()
+
+# Print accuracy
+acc = num_correct / len(test_dataset)
+print(f'Accuracy: {acc}')
+
+# Make some predictions
+for i in range(9):
+    # Make prediction
+    image, _ = test_dataset[i]
+    preds = model(image)
+    pred = torch.argmax(preds).item()
+
+    # Configure plot
+    ax = plt.subplot(3, 3, i + 1)
+    ax.imshow(image[0])
+    ax.set_title(f'Prediction: {pred}')
+    ax.set_xticks([])
+    ax.set_xticks([], minor=True)
+    ax.set_yticks([])
+    ax.set_yticks([], minor=True)
+
+# Show plot
 plt.show()
+
+
+
 
 
 
