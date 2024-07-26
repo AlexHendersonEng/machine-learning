@@ -5,9 +5,10 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+from torch.utils.tensorboard import SummaryWriter
 
 # Select train or test mode
-train = False
+train = True
 
 # Get GPU if available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,7 +43,7 @@ class DigitClassifier(nn.Module):
         x = self.flatten(x)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        return self.fc3(x)
+        return F.softmax(self.fc3(x))
 
 
 # Instantiate model, loss function and optimiser
@@ -50,6 +51,9 @@ model = DigitClassifier().to(device)
 loss_fn = nn.MSELoss()
 optim = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=128, gamma=0.9)
+
+# Create tensorboard summary writer
+writer = SummaryWriter()
 
 # Training loop
 if train:
@@ -79,12 +83,18 @@ if train:
             # Update learning rate
             scheduler.step()
 
+            # Write loss statistic to tensorboard
+            writer.add_scalar('Loss', loss.item(), epoch * len(train_dataloader) + batch_idx)
+
             # Print loss to command line
             print(f"Epoch: {epoch + 1}, Batch: {batch_idx}, Loss: {loss.item()}," +
                   f" Learning rate: {optim.param_groups[0]['lr']}")
 
     # Save model weights
     torch.save(model.state_dict(), './model.pth')
+
+    # Close summary writer
+    writer.close()
 else:
     model.load_state_dict(torch.load('./model.pth'))
 
