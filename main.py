@@ -6,10 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+# Get GPU if available
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 # Calculate mean and std of training dataset
 train_dataset = CustomMNIST('./data', transform=transforms.ToTensor(), train=True, download=True)
 features, _ = train_dataset[:]
-
 
 # Create transforms
 transform = transforms.Compose(
@@ -41,7 +43,7 @@ class DigitClassifier(nn.Module):
 
 
 # Instantiate model, loss function and optimiser
-model = DigitClassifier()
+model = DigitClassifier().to(device)
 loss_fn = nn.MSELoss()
 optim = torch.optim.Adam(model.parameters(), lr=1e-3)
 
@@ -49,10 +51,10 @@ optim = torch.optim.Adam(model.parameters(), lr=1e-3)
 for epoch in range(1):
     for batch_idx, data in enumerate(train_dataloader):
         # Get images and labels
-        images, labels = data
+        images, labels = data[0].to(device), data[1].to(device)
 
         # One hot encoding
-        one_hot = torch.zeros(labels.size(0), 10)
+        one_hot = torch.zeros(labels.size(0), 10).to(device)
         for row in range(one_hot.size(0)):
             one_hot[row, labels[row].item()] = 1
 
@@ -78,7 +80,7 @@ with torch.no_grad():
     num_correct = 0
     for data in test_dataloader:
         # Get images and labels
-        images, labels = data
+        images, labels = data[0].to(device), data[1].to(device)
 
         # Make predictions
         preds = model(images)
@@ -94,12 +96,13 @@ print(f'Accuracy: {acc}')
 for i in range(9):
     # Make prediction
     image, _ = test_dataset[i]
+    image = image.to(device)
     preds = model(image)
     pred = torch.argmax(preds).item()
 
     # Configure plot
     ax = plt.subplot(3, 3, i + 1)
-    ax.imshow(image[0])
+    ax.imshow(image.cpu()[0])
     ax.set_title(f'Prediction: {pred}')
     ax.set_xticks([])
     ax.set_xticks([], minor=True)
