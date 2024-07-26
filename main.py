@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+# Select train or test mode
+train = False
+
 # Get GPU if available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -21,9 +24,9 @@ transform = transforms.Compose(
 
 # Create datasets and dataloaders
 train_dataset = CustomMNIST('./data', transform=transform, train=True, download=True)
-train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_dataset = CustomMNIST('./data', transform=transform, train=False, download=True)
-test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 
 # Digit classifier model
@@ -46,33 +49,44 @@ class DigitClassifier(nn.Module):
 model = DigitClassifier().to(device)
 loss_fn = nn.MSELoss()
 optim = torch.optim.Adam(model.parameters(), lr=1e-3)
+scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=128, gamma=0.9)
 
 # Training loop
-for epoch in range(1):
-    for batch_idx, data in enumerate(train_dataloader):
-        # Get images and labels
-        images, labels = data[0].to(device), data[1].to(device)
+if train:
+    for epoch in range(3):
+        for batch_idx, data in enumerate(train_dataloader):
+            # Get images and labels
+            images, labels = data[0].to(device), data[1].to(device)
 
-        # One hot encoding
-        one_hot = torch.zeros(labels.size(0), 10).to(device)
-        for row in range(one_hot.size(0)):
-            one_hot[row, labels[row].item()] = 1
+            # One hot encoding
+            one_hot = torch.zeros(labels.size(0), 10).to(device)
+            for row in range(one_hot.size(0)):
+                one_hot[row, labels[row].item()] = 1
 
-        # Zero gradients for every batch
-        optim.zero_grad()
+            # Zero gradients for every batch
+            optim.zero_grad()
 
-        # Make predictions for batch
-        preds = model(images)
+            # Make predictions for batch
+            preds = model(images)
 
-        # Compute loss and gradients
-        loss = loss_fn(preds, one_hot)
-        loss.backward()
+            # Compute loss and gradients
+            loss = loss_fn(preds, one_hot)
+            loss.backward()
 
-        # Adjust model parameters
-        optim.step()
+            # Adjust model parameters
+            optim.step()
 
-        # Print loss to command line
-        print(f'Epoch: {epoch + 1}, Batch: {batch_idx}, Loss: {loss.item()}')
+            # Update learning rate
+            scheduler.step()
+
+            # Print loss to command line
+            print(f"Epoch: {epoch + 1}, Batch: {batch_idx}, Loss: {loss.item()}," +
+                  f" Learning rate: {optim.param_groups[0]['lr']}")
+
+    # Save model weights
+    torch.save(model.state_dict(), './model.pth')
+else:
+    model.load_state_dict(torch.load('./model.pth'))
 
 # Testing loop
 model.eval()
