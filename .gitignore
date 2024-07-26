@@ -5,3 +5,4 @@ data/
 
 # Files to ignore
 *.pyc
+*.pth
