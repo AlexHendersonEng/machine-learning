@@ -135,10 +135,10 @@ if train:
               f"Validation loss {val_loss}, Validation accuracy: {val_acc:.2f}")
 
     # Save model weights
-    torch.save(model.state_dict(), './model.pth')
+    torch.save(model.state_dict(), 'models/multi_layer_perceptron.pth')
 
 else:
-    model.load_state_dict(torch.load('./model.pth'))
+    model.load_state_dict(torch.load('models/multi_layer_perceptron.pth'))
 
 # Make some predictions
 for i in range(9):
