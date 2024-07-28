@@ -58,6 +58,12 @@ writer = SummaryWriter()
 # Training loop
 if train:
     for epoch in range(3):
+        # Initialise loses and accuracies
+        train_loss, train_n_correct = 0., 0.
+        val_loss, val_n_correct = 0., 0.
+
+        # Train model
+        model.train()
         for batch_idx, data in enumerate(train_dataloader):
             # Get images and labels
             images, labels = data[0].to(device), data[1].to(device)
@@ -83,12 +89,50 @@ if train:
             # Update learning rate
             scheduler.step()
 
-            # Write loss statistic to tensorboard
-            writer.add_scalar('Loss', loss.item(), epoch * len(train_dataloader) + batch_idx)
+            # Collate training loss and number correct
+            train_loss += loss.item()
+            train_n_correct += torch.sum(torch.argmax(preds, dim=1) == labels).item()
 
-            # Print loss to command line
-            print(f"Epoch: {epoch + 1}, Batch: {batch_idx}, Loss: {loss.item()}," +
-                  f" Learning rate: {optim.param_groups[0]['lr']}")
+            # Write loss statistic to tensorboard
+            writer.add_scalar('Training loss', loss.item(), epoch * len(train_dataloader) + batch_idx)
+
+        # Test model
+        model.eval()
+        with torch.no_grad():
+            for batch_idx, data in enumerate(test_dataloader):
+                # Get images and labels
+                images, labels = data[0].to(device), data[1].to(device)
+
+                # One hot encoding
+                one_hot = torch.zeros(labels.size(0), 10).to(device)
+                for row in range(one_hot.size(0)):
+                    one_hot[row, labels[row].item()] = 1
+
+                # Zero gradients for every batch
+                optim.zero_grad()
+
+                # Make predictions for batch
+                preds = model(images)
+
+                # Compute loss and gradients
+                loss = loss_fn(preds, one_hot)
+
+                # Collate testing loss and number correct
+                val_loss += loss.item()
+                val_n_correct += torch.sum(torch.argmax(preds, dim=1) == labels).item()
+
+                # Write loss statistic to tensorboard
+                writer.add_scalar('Validation loss', loss.item(), epoch * len(test_dataloader) + batch_idx)
+
+        # Calculate epoch statistics
+        train_loss = train_loss / len(train_dataset)
+        train_acc = train_n_correct / len(train_dataset)
+        val_loss = val_loss / len(test_dataset)
+        val_acc = val_n_correct / len(test_dataset)
+
+        # Print statistics to command line
+        print(f"Epoch: {epoch + 1}, Training loss: {train_loss}, Training accuracy: {train_acc:.2f} " +
+              f"Validation loss {val_loss}, Validation accuracy: {val_acc:.2f}")
 
     # Save model weights
     torch.save(model.state_dict(), './model.pth')
@@ -97,24 +141,6 @@ if train:
     writer.close()
 else:
     model.load_state_dict(torch.load('./model.pth'))
-
-# Testing loop
-model.eval()
-with torch.no_grad():
-    num_correct = 0
-    for data in test_dataloader:
-        # Get images and labels
-        images, labels = data[0].to(device), data[1].to(device)
-
-        # Make predictions
-        preds = model(images)
-
-        # Get number of correct predictions
-        num_correct += torch.sum(torch.argmax(preds, dim=1) == labels).item()
-
-# Print accuracy
-acc = num_correct / len(test_dataset)
-print(f'Accuracy: {acc}')
 
 # Make some predictions
 for i in range(9):
