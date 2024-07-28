@@ -137,8 +137,6 @@ if train:
     # Save model weights
     torch.save(model.state_dict(), './model.pth')
 
-    # Close summary writer
-    writer.close()
 else:
     model.load_state_dict(torch.load('./model.pth'))
 
@@ -159,8 +157,14 @@ for i in range(9):
     ax.set_yticks([])
     ax.set_yticks([], minor=True)
 
+    # Add image to tensorboard
+    writer.add_image(f'Prediction: {pred}', image, 0)
+
 # Show plot
 plt.show()
+
+# Close tensorboard writer
+writer.close()
 
 
 
