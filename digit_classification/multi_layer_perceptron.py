@@ -131,7 +131,7 @@ if train:
         val_acc = val_n_correct / len(test_dataset)
 
         # Print statistics to command line
-        print(f"Epoch: {epoch + 1}, Training loss: {train_loss}, Training accuracy: {train_acc:.2f} " +
+        print(f"Epoch: {epoch + 1}, Training loss: {train_loss}, Training accuracy: {train_acc:.2f}, " +
               f"Validation loss {val_loss}, Validation accuracy: {val_acc:.2f}")
 
     # Save model weights
